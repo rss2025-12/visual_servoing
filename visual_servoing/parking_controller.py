@@ -31,6 +31,20 @@ class ParkingController(Node):
 
         self.get_logger().info("Parking Controller Initialized")
 
+    # def get_R_point(robot_loc, target_loc, R):
+    #     """
+    #     Given the current location of the robot, 
+    #     get the point on the direct path from the
+    #     robot to the goal at a distance R
+    #     """
+    #     # TODO: revise this to get the R radius circle intersection with the shortest path to the goal
+    #     # x,y = robot_loc
+    #     # x_goal, y_goal = target_loc
+    #     # theta = np.arctan2(y_goal-y, x_goal-x)
+    #     # return (x+R*np.cos(theta), y+R*np.sin(theta))
+    #     pass
+
+
     def relative_cone_callback(self, msg):
         self.relative_x = msg.x_pos
         self.relative_y = msg.y_pos
@@ -40,6 +54,22 @@ class ParkingController(Node):
 
         # YOUR CODE HERE
         # Use relative position and your control law to set drive_cmd
+        # using pure pursuit
+        
+        # x_target, y_target = get_R_point((0,0), self.relative_x, self.relative_y)
+        
+        # L = 13 # in
+        # lfw = L*2/3
+        # Lfw = np.linalg.norm([(x_target+0+lfw), (y_target)])
+        # R = 0.5 # m
+        # eta = np.arctan2(y_target, x_target, R)
+        # drive_cmd = -np.arctan(L*np.sin(eta))/(Lfw/2+lfw*np.cos(eta))
+        x, y = self.relative_x, self.relative_y
+        L = 0.5 # lookahed distance
+        # r = L**2/(2*np.abs(self.relative_y))
+        g = abs(y/x)
+        r = L**2/(2*abs(g*y))
+        drive_cmd = 1/r
 
         #################################
 

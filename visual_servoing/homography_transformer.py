@@ -21,10 +21,10 @@ from vs_msgs.msg import ConeLocation, ConeLocationPixel
 
 ######################################################
 ## DUMMY POINTS -- ENTER YOUR MEASUREMENTS HERE
-PTS_IMAGE_PLANE = [[-1, -1],
-                   [-1, -1],
-                   [-1, -1],
-                   [-1, -1]] # dummy points
+PTS_IMAGE_PLANE = [[385, 325],  # Bottom Right
+                   [91, 325],   # Bottom Left
+                   [358, 247],  # Top Right
+                   [180, 247]]  # Top Left
 ######################################################
 
 # PTS_GROUND_PLANE units are in inches
@@ -32,10 +32,10 @@ PTS_IMAGE_PLANE = [[-1, -1],
 
 ######################################################
 ## DUMMY POINTS -- ENTER YOUR MEASUREMENTS HERE
-PTS_GROUND_PLANE = [[-1, -1],
-                    [-1, -1],
-                    [-1, -1],
-                    [-1, -1]] # dummy points
+PTS_GROUND_PLANE = [[6, 0],     # Bottom Right
+                    [6, 11],   # Bottom Left
+                    [14.5, 0],   # Top Right
+                    [14.5, 11]]   # Top Left
 ######################################################
 
 METERS_PER_INCH = 0.0254
@@ -66,6 +66,7 @@ class HomographyTransformer(Node):
 
         self.get_logger().info("Homography Transformer Initialized")
 
+
     def cone_detection_callback(self, msg):
         #Extract information from message
         u = msg.u
@@ -79,6 +80,7 @@ class HomographyTransformer(Node):
         relative_xy_msg.x_pos = x
         relative_xy_msg.y_pos = y
 
+        self.draw_marker(x, y, "/odom")
         self.cone_pub.publish(relative_xy_msg)
 
 
