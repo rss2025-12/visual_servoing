@@ -1,6 +1,8 @@
 import cv2
 import imutils
 import numpy as np
+import os
+import uuid
 
 #################### X-Y CONVENTIONS #########################
 # 0,0  X  > > > > >
@@ -14,17 +16,27 @@ import numpy as np
 #  v
 ###############################################################
 
-def image_print(img):
+def image_print(img, output_dir="output"):
 	"""
 	Helper function to print out images, for debugging.
 	Press any key to continue.
 	"""
+    # Ensure the output directory exists
+	if not os.path.exists(output_dir):
+		os.makedirs(output_dir)
+
+	#generate a unique filename
+	unique_filename = os.path.join(output_dir, f"output_{uuid.uuid4().hex}.jpg")
+
 	winname = "Image"
-	cv2.namedWindow(winname)        # Create a named window
-	cv2.moveWindow(winname, 40,30)  # Move it to (40,30)
-	cv2.imshow(winname, img)
-	cv2.waitKey()
-	cv2.destroyAllWindows()
+	# cv2.namedWindow(winname)        # Create a named window
+	# cv2.moveWindow(winname, 40,30)  # Move it to (40,30)
+	#cv2.imshow(winname, img)- replaced this with the following line to see the image
+	cv2.imwrite(unique_filename, img)
+	print(f"Image saved to {unique_filename}")
+
+	# cv2.waitKey()
+	# cv2.destroyAllWindows()
 
 def cd_sift_ransac(img, template):
 	"""
@@ -68,13 +80,26 @@ def cd_sift_ransac(img, template):
 
 		########## YOUR CODE STARTS HERE ##########
 
-		good_pts = [pts[i] for i in range(len(pts)) if matchesMask[i] == 1]
-		new_pts = cv2.perspectiveTransform(np.float32(good_pts), M)
+		#transform the template corners ro the test image using the homography matrix
+		new_pts = cv2.perspectiveTransform(pts, M)
 
-		x_min = int(np.min(new_pts[:, 0, 0]))
-		y_min = int(np.min(new_pts[:, 0, 1]))
-		x_max = int(np.max(new_pts[:, 0, 0]))
-		y_max = int(np.max(new_pts[:, 0, 1]))
+		#Get the min and max x and y coordinates of the transformed points
+		x_coords = [pt[0][0] for pt in new_pts]
+		y_coords = [pt[0][1] for pt in new_pts]
+
+		x_min = int(min(x_coords))
+		x_max = int(max(x_coords))
+		y_min = int(min(y_coords))
+		y_max = int(max(y_coords))
+
+		# #Andy's Code: 
+		# good_pts = [pts[i] for i in range(len(pts)) if matchesMask[i] == 1]
+		# new_pts = cv2.perspectiveTransform(np.float32(good_pts), M)
+
+		# x_min = int(np.min(new_pts[:, 0, 0]))
+		# y_min = int(np.min(new_pts[:, 0, 1]))
+		# x_max = int(np.max(new_pts[:, 0, 0]))
+		# y_max = int(np.max(new_pts[:, 0, 1]))
 
 		cv2.rectangle(img, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
 		image_print(img)
@@ -99,6 +124,7 @@ def cd_template_matching(img, template):
 		bbox: ((x1, y1), (x2, y2)); the bounding box of the cone, unit in px
 				(x1, y1) is the bottom left of the bbox and (x2, y2) is the top right of the bbox
 	"""
+	#Compute Canny edges for the template
 	template_canny = cv2.Canny(template, 50, 200)
 
 	# Perform Canny Edge detection on test image
@@ -110,6 +136,7 @@ def cd_template_matching(img, template):
 
 	# Keep track of best-fit match
 	best_match = None
+	best_match_score = -np.inf # Added: Initialize to negative infinity low score
 
 	# Loop over different scales of image
 	for scale in np.linspace(1.5, .5, 50):
@@ -121,11 +148,29 @@ def cd_template_matching(img, template):
 			continue
 
 		########## YOUR CODE STARTS HERE ##########
-		# Use OpenCV template matching functions to find the best match
-		# across template scales.
+		# Use OpenCV template matching functions to find the best match # across template scales.
 
+		result = cv2.matchTemplate(img_canny, resized_template, cv2.TM_CCOEFF_NORMED)
+		(_, maxVal, _, maxLoc) = cv2.minMaxLoc(result) #get best match location and its score
+
+		# If the current match is better than the best match, update the best match
+		if maxVal > best_match_score:
+			best_match = (maxLoc, (w,h), scale)
+			best_match_score = maxVal
+
+	if best_match is not None:
+		(top_left, (w, h), scale) = best_match
+		bounding_box = ((top_left[0], top_left[1]), (top_left[0] + w, top_left[1] + h))
+
+		#dispalying the image with the bounding box
+		img_with_box = img.copy()
+		cv2.rectangle(img_with_box, bounding_box[0], bounding_box[1], (0, 255, 0), 2)
+		image_print(img_with_box)
+
+		
 		# Remember to resize the bounding box using the highest scoring scale
 		# x1,y1 pixel will be accurate, but x2,y2 needs to be correctly scaled
+	else: 
 		bounding_box = ((0,0),(0,0))
 		########### YOUR CODE ENDS HERE ###########
 
