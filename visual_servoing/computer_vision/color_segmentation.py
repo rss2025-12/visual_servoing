@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-# from cv_test import test_algorithm
+import apriltag
 
 #################### X-Y CONVENTIONS #########################
 # 0,0  X  > > > > >
@@ -20,13 +20,16 @@ def image_print(img):
 	Press any key to continue.
 	"""
 	cv2.imshow("image", img)
+
+	### For test cases ###
 	#cv2.waitKey(0)
 	#cv2.destroyAllWindows()
 
+	### For continuous streaming ###
 	if cv2.waitKey(1) & 0xFF == ord('q'):
 		cv2.destroyAllWindows()
 
-def cd_color_segmentation(img, template, display=False, paper=False):
+def cd_color_segmentation(img, template, display=False):
 	"""
 	Implement the cone detection using color segmentation algorithm
 	Input:
@@ -36,11 +39,8 @@ def cd_color_segmentation(img, template, display=False, paper=False):
 		bbox: ((x1, y1), (x2, y2)); the bounding box of the cone, unit in px
 				(x1, y1) is the top left of the bbox and (x2, y2) is the bottom right of the bbox
 	"""
-	if paper is True:
-		img = detect_paper_corners(img)
-	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-
 	# HSV Parameters #
+	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 	hue_low, hue_high = 2, 30
 	saturation_low, saturation_high = 150, 255
 	value_low, value_high = 170, 255
@@ -70,52 +70,46 @@ def cd_color_segmentation(img, template, display=False, paper=False):
 
 	return bounding_box
 
-def detect_paper_corners(image):
-	height, width = image.shape[:2]
-	cropped_image = image[height//2:, :]
+CAMERA_MATRIX = np.array([[344.8610534667969, 0, 321.635986328125],
+                           [0, 344.8610534667969, 172.66043090820312],
+                           [0, 0, 1.0]])
+DIST_COEFFS = np.zeros(5)
+TAG_SIZE = 0.15
 
-	hsv = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2HSV)
-	lower_white = np.array([0, 0, 150])
-	upper_white = np.array([180, 20, 190])
-	mask = cv2.inRange(hsv, lower_white, upper_white)
+def detect_apriltags(img):
+	"""
+	Detects AprilTags in an image and calculates their center coordinates and distance to the camera.
+	"""
+	f_x = CAMERA_MATRIX[0, 0]
+	f_y = CAMERA_MATRIX[1, 1]
+	c_x = CAMERA_MATRIX[0, 2]
+	c_y = CAMERA_MATRIX[1, 2]
 
-	contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+	img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+	detector = apriltag.Detector()
+	detections = detector.detect(img)
+	results = []
 
-	if contours:
-		contour = max(contours, key=cv2.contourArea)
-		epsilon = 0.02 * cv2.arcLength(contour, True)
-		approx = cv2.approxPolyDP(contour, epsilon, True)
+	for detection in detections:
+		tag_id = detection.tag_id
+		center = detection.center
+		corners = detection.corners
 
-		# TODO: Draw and print top left, top right, bottom left, bottom right pixel
-		approx = sorted(approx, key=lambda x: x[0][1])  # Sort by y-coordinate
+		object_points = np.array([[-TAG_SIZE / 2, -TAG_SIZE / 2, 0],
+									[ TAG_SIZE / 2, -TAG_SIZE / 2, 0],
+									[ TAG_SIZE / 2,  TAG_SIZE / 2, 0],
+									[-TAG_SIZE / 2,  TAG_SIZE / 2, 0]], dtype=np.float32)
 
-		if len(approx) >= 4:
-			# Separate the points into top and bottom
-			top_points = sorted(approx[:len(approx)//2], key=lambda x: x[0][0])  # Sort top points by x-coordinate
-			bottom_points = sorted(approx[len(approx)//2:], key=lambda x: x[0][0])  # Sort bottom points by x-coordinate
+		_, rvec, tvec = cv2.solvePnP(object_points, corners, CAMERA_MATRIX, DIST_COEFFS)
 
-			# Identify top-left, top-right, bottom-left, bottom-right
-			top_left = top_points[0]
-			top_right = top_points[-1]
-			bottom_left = bottom_points[0]
-			bottom_right = bottom_points[-1]
+		# Convert translation vector (tvec) into x and y distances
+		X = tvec[2][0]  # x distance (outward from the camera)
+		Y = -tvec[0][0]  # y distance (left/right of the camera)
 
-			top_left[0][1] += height // 2
-			top_right[0][1] += height // 2
-			bottom_left[0][1] += height // 2
-			bottom_right[0][1] += height // 2
+		results.append({'id': tag_id, 'center': center, 'X': X, 'Y': Y})
 
-			print("Top-left:", tuple(top_left[0]))
-			print("Top-right:", tuple(top_right[0]))
-			print("Bottom-left:", tuple(bottom_left[0]))
-			print("Bottom-right:", tuple(bottom_right[0]))
+		cv2.drawContours(img, [np.int32(corners)], -1, (0, 255, 0), 2)
+		cv2.putText(img, f"ID: {tag_id}, X: {X}, Y: {Y}", tuple(np.int32(center)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
-			# Draw the corners on the image
-			cv2.circle(image, tuple(top_left[0]), 5, (0, 0, 255), -1)  # Red dot for top-left
-			cv2.circle(image, tuple(top_right[0]), 5, (0, 0, 255), -1)  # Red dot for top-right
-			cv2.circle(image, tuple(bottom_left[0]), 5, (0, 0, 255), -1)  # Red dot for bottom-left
-			cv2.circle(image, tuple(bottom_right[0]), 5, (0, 0, 255), -1)  # Red dot for bottom-right
-
-		return image
-
-	return image
+	image_print(img)
+	return results

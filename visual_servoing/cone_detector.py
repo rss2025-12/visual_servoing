@@ -12,7 +12,7 @@ from geometry_msgs.msg import Point #geometry_msgs not in CMake file
 from vs_msgs.msg import ConeLocationPixel
 
 # import your color segmentation algorithm; call this function in ros_image_callback!
-from computer_vision.color_segmentation import cd_color_segmentation
+from computer_vision.color_segmentation import cd_color_segmentation, detect_apriltags
 
 
 class ConeDetector(Node):
@@ -24,14 +24,24 @@ class ConeDetector(Node):
     def __init__(self):
         super().__init__("cone_detector")
         # toggle line follower vs cone parker
-        # TODO: Create a param file to toggle this
-        self.LineFollower = False
+        self.LineFollower = False # TODO: Create a param file to toggle this
 
         # Subscribe to ZED camera RGB frames
         self.cone_pub = self.create_publisher(ConeLocationPixel, "/relative_cone_px", 10)
         self.debug_pub = self.create_publisher(Image, "/cone_debug_img", 10)
         self.image_sub = self.create_subscription(Image, "/zed/zed_node/rgb/image_rect_color", self.image_callback, 5)
         self.bridge = CvBridge() # Converts between ROS images and OpenCV Images
+
+        ### AprilTag Detection Dictionary ###
+        # self.tag_positions = {}
+        # for tag_id in range(9):
+        #     self.tag_positions[tag_id] = {
+        #         'total_center_u': 0,
+        #         'total_center_v': 0,
+        #         'total_X': 0,
+        #         'total_Y': 0,
+        #         'count': 0
+        #     }
 
         self.get_logger().info("Cone Detector Initialized")
 
@@ -46,7 +56,10 @@ class ConeDetector(Node):
 
         image = self.bridge.imgmsg_to_cv2(image_msg, "bgr8")
         bottom_pixel = ConeLocationPixel()
-        bounding_box = cd_color_segmentation(image, "placeholder", False, False)
+        bounding_box = cd_color_segmentation(image, "placeholder", False)
+
+        ### AprilTag Detection (Remeber to comment out) ###
+        # self.april_tag_distances(detect_apriltags(image))
 
         (x1, y1), (x2, y2) = bounding_box
         bottom_pixel.u = float(x1 + (x2 - x1) / 2)
@@ -55,6 +68,30 @@ class ConeDetector(Node):
 
         debug_msg = self.bridge.cv2_to_imgmsg(image, "bgr8")
         self.debug_pub.publish(debug_msg)
+
+    def april_tag_distances(self, positions):
+        for tag in positions:
+            tag_id = tag['id']
+            u, v = tag['center']
+            X, Y = tag['X'], tag['Y']
+            tag_position = self.tag_positions[tag_id]
+            tag_position['total_center_u'] += u
+            tag_position['total_center_v'] += v
+            tag_position['total_X'] += X
+            tag_position['total_Y'] += Y
+            tag_position['count'] += 1
+        
+        if self.tag_positions[0]['count'] == 100:
+            for tag_id, data in self.tag_positions.items():
+                count = data['count']
+                if count > 0:
+                    avg_center_u = data['total_center_u'] / count
+                    avg_center_v = data['total_center_v'] / count
+                    avg_X = data['total_X'] / count
+                    avg_Y = data['total_Y'] / count
+
+                    print(f"Tag {tag_id} Averaged Center: ({avg_center_u:.2f}, {avg_center_v:.2f})")
+                    print(f"Tag {tag_id} Averaged Position: (X: {avg_X:.2f}, Y: {avg_Y:.2f})")
 
 
 def main(args=None):

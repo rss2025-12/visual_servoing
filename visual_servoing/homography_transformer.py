@@ -21,10 +21,15 @@ from vs_msgs.msg import ConeLocation, ConeLocationPixel
 
 ######################################################
 ## DUMMY POINTS -- ENTER YOUR MEASUREMENTS HERE
-PTS_IMAGE_PLANE = [[385, 325],  # Bottom Right
-                   [91, 325],   # Bottom Left
-                   [358, 247],  # Top Right
-                   [180, 247]]  # Top Left
+PTS_IMAGE_PLANE = [[193, 193],
+                   [277, 195],
+                   [368, 196],
+                   [468, 200],
+                   [558, 201],
+                   [114, 228],
+                   [240, 232],
+                   [379, 237],
+                   [521, 241]]
 ######################################################
 
 # PTS_GROUND_PLANE units are in inches
@@ -32,10 +37,15 @@ PTS_IMAGE_PLANE = [[385, 325],  # Bottom Right
 
 ######################################################
 ## DUMMY POINTS -- ENTER YOUR MEASUREMENTS HERE
-PTS_GROUND_PLANE = [[6, 0],     # Bottom Right
-                    [6, 11],   # Bottom Left
-                    [14.5, 0],   # Top Right
-                    [14.5, 11]]   # Top Left
+PTS_GROUND_PLANE = [[0.84, 0.31],     # Bottom Right
+                    [0.82, 0.11],   # Bottom Left
+                    [0.83, -0.11],   # Top Right
+                    [0.79, -0.33],
+                    [0.78, -0.53],
+                    [0.57, 0.34],
+                    [0.55, 0.13],
+                    [0.54, -0.09],
+                    [0.52, -0.30]]   # Top Left
 ######################################################
 
 METERS_PER_INCH = 0.0254
@@ -55,7 +65,7 @@ class HomographyTransformer(Node):
         #Initialize data into a homography matrix
 
         np_pts_ground = np.array(PTS_GROUND_PLANE)
-        np_pts_ground = np_pts_ground * METERS_PER_INCH
+        np_pts_ground = np_pts_ground # * METERS_PER_INCH
         np_pts_ground = np.float32(np_pts_ground[:, np.newaxis, :])
 
         np_pts_image = np.array(PTS_IMAGE_PLANE)
@@ -80,7 +90,7 @@ class HomographyTransformer(Node):
         relative_xy_msg.x_pos = x
         relative_xy_msg.y_pos = y
 
-        self.draw_marker(x, y, "/odom")
+        self.draw_marker(x, y, "/zed_left_camera_frame")
         self.cone_pub.publish(relative_xy_msg)
 
 
