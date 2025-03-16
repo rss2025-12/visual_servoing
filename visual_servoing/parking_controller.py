@@ -23,8 +23,8 @@
 #         #  Boundary for when the car is considered pointed in the right direction
 #         self.declare_parameter("anglular_error_threshold", np.pi/12)
 #         self.angular_error_threshold = self.get_parameter("anglular_error_threshold").value
-        
-#          # Boundaries for when the car is considered too close/too far from the cone for 
+
+#          # Boundaries for when the car is considered too close/too far from the cone for
 #          # angle adjustment manuevers (negative is too close)
 #         self.declare_parameter("distance_error_thresholds", [-0.2, 0.2])
 #         self.distance_error_threshold = self.get_parameter("distance_error_thresholds").get_parameter_value().double_array_value
@@ -37,7 +37,7 @@
 #         self.drive_pub = self.create_publisher(AckermannDriveStamped, DRIVE_TOPIC, 10)
 #         self.error_pub = self.create_publisher(ParkingError, "/parking_error", 10)
 
-#         self.create_subscription(ConeLocation, "/relative_cone", 
+#         self.create_subscription(ConeLocation, "/relative_cone",
 #             self.relative_cone_callback, 1)
 
 #         self.declare_parameter("parking_distance", 0.75)
@@ -46,7 +46,7 @@
 #         self.relative_x = 0
 #         self.relative_y = 0
 #         self.reverse = False
-#         self.previous_x_error = 0 
+#         self.previous_x_error = 0
 #         self.previous_time = Time()
 #         self.integrated_dist_error = 0
 
@@ -54,7 +54,7 @@
 
 #         self.get_logger().info("Parking Controller Initialized")
 
-#         # Enable setting parking_velocity and parking_distance from the command line 
+#         # Enable setting parking_velocity and parking_distance from the command line
 #         self.add_on_set_parameters_callback(self.parameters_callback)
 
 #     def relative_cone_callback(self, msg):
@@ -86,18 +86,18 @@
 #         #         self.reverse = True
 #         # elif distance_error >= self.distance_error_threshold[1]:
 #         #         self.reverse = False
-        
-        
+
+
 #         # if not high_angular_error and distance_error > self.distance_error_threshold[0] and distance_error < self.distance_error_threshold[1]:
 #         #     velocity = self.parking_velocity * ((x_error)/self.parking_distance)
-#         #     heading /= 2        
+#         #     heading /= 2
 #         # else:
 #         #     velocity = -self.parking_velocity if self.reverse else self.parking_velocity
 
 #         # self.integrated_dist_error += max(min(dt * self.previous_x_error, self.integral_max), self.integral_min)
 #         # self.previous_x_error = x_error
 #         # self.previous_time = current_time
-        
+
 
 
 
@@ -107,8 +107,8 @@
 #         # drive_cmd.drive.speed = velocity
 #         # self.drive_pub.publish(drive_cmd)
 #         # self.error_publisher()
-        
-        
+
+
 
 #     def error_publisher(self):
 #         """
@@ -120,7 +120,7 @@
 #         error_msg.x_error = self.relative_x - self.parking_distance
 #         error_msg.y_error =  self.relative_y
 #         error_msg.distance_error = np.hypot(error_msg.x_error, error_msg.y_error)
-        
+
 #         self.error_pub.publish(error_msg)
 
 #     def parameters_callback(self, params):
@@ -167,10 +167,15 @@ class ParkingController(Node):
         self.drive_pub = self.create_publisher(AckermannDriveStamped, DRIVE_TOPIC, 10)
         self.error_pub = self.create_publisher(ParkingError, "/parking_error", 10)
 
-        self.create_subscription(ConeLocation, "/relative_cone", 
+        self.create_subscription(ConeLocation, "/relative_cone",
             self.relative_cone_callback, 1)
 
         self.parking_distance = .75 # meters; try playing with this number!
+        self.drive_velocity = 0.8
+        self.velocity_scale = 1
+        self.deceleration_distance = self.parking_distance + self.park_velocity**2 - self.drive_velocity**2 / (2 * 0.6 * 9.8)
+        self.min_radius = self.velocity**2 / (9.8 * 0.8) # mu = [0.7, 0.9]
+
         self.relative_x = 0
         self.relative_y = 0
         self.e_cross = 0
@@ -187,25 +192,48 @@ class ParkingController(Node):
 
         self.get_logger().info("Parking Controller Initialized")
 
-    # def get_theta_():
-    #     pass
+
+    def stanley():
+        """
+        Given crosstrack and heading error, apply the Stanley
+        controller formula.
+        """
+        pass
+
 
     def relative_cone_callback(self, msg):
         self.relative_x = msg.x_pos
         self.relative_y = msg.y_pos
         drive_cmd = AckermannDriveStamped()
 
-        #################################
+        if distance > self.threshold:
+            # Forward logic
+            distance = np.sqrt(self.relative_x**2 + self.relative_y**2)
+            x_goal = self.relative_x - (self.deceleration_distance + self.relative_x / distance)
+            y_goal= self.relative_y - (self.deceleration_distance +  self.relative_y / distance)
+            theta_goal = np.arctan2(y_goal, x_goal)
+            velocity = min(self.drive_velocity, self.velocity_scale * np.sqrt(x_goal**2 + y_goal**2))
+            steering_angle = np.arctan2(np.sin(theta_goal), np.cos(theta_goal))
 
-        # YOUR CODE HERE
-        # Use relative position and your control law to set drive_cmd
+            self.ackerman_publisher(drive_cmd, velocity, steering_angle)
+        else:
+            # Reverse path planning
+            pass
 
-        #################################
-        d = self.gamma + np.arctan(self.k*self.e)
-        self.drive_pub.publish(drive_cmd)
         self.error_publisher()
-        
-        
+
+
+    def ackerman_publisher(self, drive_cmd, velocity, steering_angle):
+        drive_cmd = AckermannDriveStamped()
+        drive_cmd.header.stamp = self.get_clock().now().to_msg()
+        drive_cmd.drive.speed = velocity
+        drive_cmd.drive.acceleration = 0.0
+        drive_cmd.drive.jerk = 0.0
+        drive_cmd.drive.steering_angle = steering_angle
+        drive_cmd.drive.steering_angle_velocity = 0.0
+
+        self.drive_pub.publish(drive_cmd)
+
 
     def error_publisher(self):
         """
@@ -214,13 +242,10 @@ class ParkingController(Node):
         """
         error_msg = ParkingError()
 
-        #################################
+        error_msg.x_error = float(self.relative_x)
+        error_msg.y_error = float(self.relative_y)
+        error_msg.distance_error = float(np.sqrt(self.relative_x**2 + self.relative_y**2))
 
-        # YOUR CODE HERE
-        # Populate error_msg with relative_x, relative_y, sqrt(x^2+y^2)
-
-        #################################
-        
         self.error_pub.publish(error_msg)
 
 def main(args=None):
