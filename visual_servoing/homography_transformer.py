@@ -50,7 +50,6 @@ PTS_GROUND_PLANE = [[0.84, 0.31],     # Bottom Right
 
 METERS_PER_INCH = 0.0254
 
-
 class HomographyTransformer(Node):
     def __init__(self):
         super().__init__("homography_transformer")

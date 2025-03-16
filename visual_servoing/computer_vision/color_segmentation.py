@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-import apriltag
+# import apriltag
 
 #################### X-Y CONVENTIONS #########################
 # 0,0  X  > > > > >
