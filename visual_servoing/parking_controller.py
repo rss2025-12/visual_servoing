@@ -70,7 +70,6 @@ class ParkingController(Node):
         # Logic and booleans #
         # If car would orbit the cone, or is too close, reverse
         if (distance_error <= self.distance_error_threshold[0]) or np.abs(angle_error) * 4 * self.max_turn_radius/np.pi > distance:
-            self.get_logger().info("reversing")
             self.reverse = True
         elif distance_error >= self.distance_error_threshold[1]:
             self.reverse = False
