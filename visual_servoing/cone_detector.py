@@ -24,8 +24,9 @@ class ConeDetector(Node):
     def __init__(self):
         super().__init__("cone_detector")
         # toggle line follower vs cone parker
-        self.LineFollower = False # TODO: Create a param file to toggle this
-
+        self.declare_parameter("line_follower", False)
+        self.LineFollower = self.get_parameter("line_follower").value
+        
         # Subscribe to ZED camera RGB frames
         self.cone_pub = self.create_publisher(ConeLocationPixel, "/relative_cone_px", 10)
         self.debug_pub = self.create_publisher(Image, "/cone_debug_img", 10)
@@ -56,7 +57,17 @@ class ConeDetector(Node):
 
         image = self.bridge.imgmsg_to_cv2(image_msg, "bgr8")
         bottom_pixel = ConeLocationPixel()
-        bounding_box = cd_color_segmentation(image, "placeholder", False)
+
+        if self.LineFollower is True:
+            y_win = 30
+            y_mid = 210
+
+            # Black mask
+            mask = np.zeros_like(image, dtype=np.uint8)
+            mask[y_mid-y_win: y_mid+y_win, :] = 255
+            image = cv2.bitwise_and(image, mask)
+
+        bounding_box = cd_color_segmentation(image, "placeholder", True, self.LineFollower)
 
         ### AprilTag Detection (Remeber to comment out) ###
         # self.april_tag_distances(detect_apriltags(image))
@@ -64,6 +75,7 @@ class ConeDetector(Node):
         (x1, y1), (x2, y2) = bounding_box
         bottom_pixel.u = float(x1 + (x2 - x1) / 2)
         bottom_pixel.v = float(y2)
+        # print(x1 + (x2 - x1) / 2, y2)
         self.cone_pub.publish(bottom_pixel)
 
         debug_msg = self.bridge.cv2_to_imgmsg(image, "bgr8")
