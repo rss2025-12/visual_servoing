@@ -43,34 +43,34 @@ class ParkingController(Node):
         self.create_subscription(ConeLocation, "/relative_cone", self.relative_cone_callback, 1)
 
         # Constants #
-        self.Kp = 1
-        self.Ki = 0
-        self.Kd = 0.1
+        # self.Kp = 1
+        # self.Ki = 0
+        # self.Kd = 0.1
         self.camera_offset = 0.06 # Offset of left eye relative to the middle of the camera
         self.relative_x = 0
         self.relative_y = 0
-        self.reverse = False
-        self.previous_x_error = 0
-        self.previous_heading_error = 0
-        self.previous_time = Time()
-        self.integrated_dist_error = 0
-        self.integral_max, self.integral_min = -10, 10
-        self.max_turn_radius = 0.6
+        # self.reverse = False
+        # self.previous_x_error = 0
+        # self.previous_heading_error = 0
+        # self.previous_time = Time()
+        # self.integrated_dist_error = 0
+        # self.integral_max, self.integral_min = -10, 10
+        # self.max_turn_radius = 0.6
         self.add_on_set_parameters_callback(self.parameters_callback) # Enable setting parking_velocity and parking_distance from the command line
 
         self.get_logger().info("Parking Controller Initialized")
 
-    def get_yaw_from_quaternion(self, quaternion):
-        """
-        Convert quaternion to yaw (z-axis rotation).
-        """
-        qx = quaternion.x
-        qy = quaternion.y
-        qz = quaternion.z
-        qw = quaternion.w
-        siny_cosp = 2.0 * (qw * qz + qx * qy)
-        cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz)
-        return np.arctan2(siny_cosp, cosy_cosp)
+    # def get_yaw_from_quaternion(self, quaternion):
+    #     """
+    #     Convert quaternion to yaw (z-axis rotation).
+    #     """
+    #     qx = quaternion.x
+    #     qy = quaternion.y
+    #     qz = quaternion.z
+    #     qw = quaternion.w
+    #     siny_cosp = 2.0 * (qw * qz + qx * qy)
+    #     cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz)
+    #     return np.arctan2(siny_cosp, cosy_cosp)
 
     def compute_steering_angle(self, x_robot, y_robot, x_wp, y_wp, yaw_robot):
         """
@@ -83,121 +83,46 @@ class ParkingController(Node):
         # Calculate the steering angle (geometry of the pursuit)
         angle_diff = angle_to_wp
         # Pure Pursuit formula for steering angle (in radians)
-        steering_angle = np.arctan2(2.0 * np.sin(angle_diff), self.lookahead_distance)
+        steering_angle = np.arctan2(2.0 * 0.1 * np.sin(angle_diff), self.lookahead_distance)
+        
+    
         return steering_angle
 
     def relative_cone_callback(self, msg):
-        # self.relative_x = msg.x_pos 
-        # self.relative_y = msg.y_pos + self.camera_offset
-        # drive_cmd = AckermannDriveStamped()
-
-        # # Calculating errors #
-        # distance = np.sqrt(self.relative_x**2 + self.relative_y**2)
-        # distance_error = distance - self.parking_distance
-        # angle_error = np.arctan2(self.relative_y, self.relative_x)
-        # x_error = self.relative_x - self.parking_distance
-
-        # # PID #
-        # current_time = self.get_clock().now()
-        # dt = (current_time.nanoseconds - self.previous_time.nanoseconds) / (10**9)
-
-        # # Logic and booleans #
-        # if (distance_error <= self.distance_error_threshold[0]):
-        #     self.reverse = True
-        # elif distance_error >= self.distance_error_threshold[1]:
-        #     self.reverse = False
-
-        # heading = -angle_error if self.reverse else angle_error
-        # high_angular_error = (np.abs(angle_error) > self.angular_error_threshold)
-
-        # # Set velocity and heading #
-        # if not high_angular_error and distance_error > self.distance_error_threshold[0] and distance_error < self.distance_error_threshold[1]:
-        #     velocity = self.parking_velocity * ((x_error)/self.parking_distance)
-        #     heading /= 2
-        # else:
-        #     velocity = -self.parking_velocity if self.reverse else self.parking_velocity
-
-        # # PID #
-        # p_error = self.Kp*heading
-        # d_error = self.Kd*(heading - self.previous_heading_error)/dt
-        # self.integrated_dist_error += max(min(dt * self.previous_x_error, self.integral_max), self.integral_min)
-        # i_error = self.Ki*self.integrated_dist_error
-        
-        # self.previous_x_error = x_error
-        # self.previous_heading_error = heading
-        # self.previous_time = current_time
-        
-        # heading = p_error + d_error + i_error
-
-        # # Publishing Ackermann #
-        # drive_cmd.header.frame_id = "base_link"
-        # drive_cmd.header.stamp = current_time.to_msg()
-        # drive_cmd.drive.steering_angle = heading
-        # drive_cmd.drive.speed = velocity
-        # self.drive_pub.publish(drive_cmd)
-        # self.error_publisher()
-        
         x_robot = 0
         y_robot = 0
         self.relative_x = msg.x_pos 
         self.relative_y = msg.y_pos + self.camera_offset
         yaw_robot = np.arctan2(self.relative_y, self.relative_x)
-
+        
+        target_dist = np.sqrt(self.relative_x**2+self.relative_y**2)
+        dist_error = target_dist - self.parking_distance
+        
         # Find the closest waypoint
         x_wp, y_wp = (self.relative_x, self.relative_y)
 
-        # Compute the lookahead point
-        dx = x_wp - x_robot
-        dy = y_wp - y_robot
-        # distance = np.sqrt(dx**2 + dy**2)
-        self.get_logger().info(f'{x_wp,y_wp}')
+        # self.get_logger().info(f'{x_wp,y_wp}')
 
-<<<<<<< HEAD
-        # Compute the curvature and velocity command
         steering_angle = self.compute_steering_angle(x_robot, y_robot, x_wp, y_wp, yaw_robot)
-        self.get_logger().info(f'{steering_angle}')
-        speed = self.VELOCITY  # Forward velocity in m/s (You can adjust this as needed)
-
-        # Create an AckermannDriveStamped message to publish the steering and speed
+        # self.get_logger().info(f'{steering_angle}')
+        
+        velocity = self.VELOCITY
+        
+        # self.reverse = False
+        park = False
+        if (dist_error > self.distance_error_threshold[1] and dist_error < self.distance_error_threshold):
+            steering_angle = 0.0
+            velocity = 0.0
+        elif (dist_error < self.distance_error_threshold[0]):
+            # self.reverse = True
+            steering_angle *= -1
+            velocity *= -1
+            
         drive_msg = AckermannDriveStamped()
         drive_msg.drive.steering_angle = steering_angle  # Steering angle in radians
-        drive_msg.drive.speed = speed  # Linear velocity in m/s
-        drive_msg.header.stamp = self.get_clock().now().to_msg()  # Timestamp for the message
+        drive_msg.drive.speed = velocity  # Linear velocity in m/s
+        drive_msg.header.stamp = self.get_clock().now().to_msg()
         drive_msg.header.frame_id = 'base_link'  # Frame ID
-=======
-
-        # Logic and booleans #
-        # If car would orbit the cone, or is too close, reverse
-        if (distance_error <= self.distance_error_threshold[0]) or np.abs(angle_error) * 4 * self.max_turn_radius/np.pi > distance:
-            self.reverse = True
-        elif distance_error >= self.distance_error_threshold[1]:
-            self.reverse = False
-
-        heading = -angle_error if self.reverse else angle_error
-        high_angular_error = (np.abs(angle_error) > self.angular_error_threshold)
-
-        # Set velocity and heading #
-        if not high_angular_error and distance_error > self.distance_error_threshold[0] and distance_error < self.distance_error_threshold[1]:
-            velocity = self.parking_velocity * ((x_error)/self.parking_distance)
-            heading /= 2
-        else:
-            velocity = -self.parking_velocity if self.reverse else self.parking_velocity
-
-
-
-        # PID #
-        self.integrated_dist_error += max(min(dt * self.previous_x_error, self.integral_max), self.integral_min)
-        self.previous_x_error = x_error
-        self.previous_time = current_time
-
-        # Publishing Ackermann #
-        drive_cmd.header.frame_id = "base_link"
-        drive_cmd.header.stamp = current_time.to_msg()
-        drive_cmd.drive.steering_angle = heading
-        drive_cmd.drive.speed = velocity
-        self.drive_pub.publish(drive_cmd)
-        self.error_publisher()
->>>>>>> cde84c5104eecd3712dcf8c5f6323477e4ca6f83
 
         self.drive_pub.publish(drive_msg)
 
@@ -213,7 +138,6 @@ class ParkingController(Node):
         error_msg.distance_error = np.hypot(error_msg.x_error, error_msg.y_error)
 
         self.error_pub.publish(error_msg)
-
 
     def parameters_callback(self, params):
         for param in params:
