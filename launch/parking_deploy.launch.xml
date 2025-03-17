@@ -6,10 +6,11 @@
   </node>
 
   <node pkg="visual_servoing" name="parking_controller" exec="parking_controller" output="screen">
-  	<param name="drive_topic" value="/vesc/low_level/input/navigation" />
+  	<param name="drive_topic" value="/vesc/high_level/input/nav_0"/>
   </node>
 
   <node pkg="visual_servoing" name="cone_detector" exec="cone_detector" output="screen">
+    <param from="$(find-pkg-share visual_servoing)/params.yaml"/>
   </node>
 
   <node pkg="visual_servoing" name="homography_transformer" exec="homography_transformer" output="screen">

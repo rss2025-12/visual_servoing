@@ -23,7 +23,7 @@ class ConeDetector(Node):
     """
     def __init__(self):
         super().__init__("cone_detector")
-        # toggle line follower vs cone parker
+        # Toggle line follower vs cone parker
         self.declare_parameter("line_follower", False)
         self.LineFollower = self.get_parameter("line_follower").value
         
@@ -45,6 +45,7 @@ class ConeDetector(Node):
         #     }
 
         self.get_logger().info("Cone Detector Initialized")
+
 
     def image_callback(self, image_msg):
         """
@@ -69,17 +70,17 @@ class ConeDetector(Node):
 
         bounding_box = cd_color_segmentation(image, "placeholder", True, self.LineFollower)
 
-        ### AprilTag Detection (Remeber to comment out) ###
+        ### AprilTag Detection (Remember to comment out) ###
         # self.april_tag_distances(detect_apriltags(image))
 
         (x1, y1), (x2, y2) = bounding_box
         bottom_pixel.u = float(x1 + (x2 - x1) / 2)
         bottom_pixel.v = float(y2)
-        # print(x1 + (x2 - x1) / 2, y2)
         self.cone_pub.publish(bottom_pixel)
 
         debug_msg = self.bridge.cv2_to_imgmsg(image, "bgr8")
         self.debug_pub.publish(debug_msg)
+
 
     def april_tag_distances(self, positions):
         for tag in positions:

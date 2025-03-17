@@ -39,9 +39,10 @@ def cd_color_segmentation(img, template, display=False, line=False):
 		bbox: ((x1, y1), (x2, y2)); the bounding box of the cone, unit in px
 				(x1, y1) is the top left of the bbox and (x2, y2) is the bottom right of the bbox
 	"""
-	# HSV Parameters #
+	### HSV Parameters ###
 	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-	## Cone
+
+	# Cone #
 	hue_val = 18
 	hue_win = 15
 	sat_val = .50
@@ -53,7 +54,7 @@ def cd_color_segmentation(img, template, display=False, line=False):
 	saturation_low, saturation_high = 200, 255
 	value_low, value_high = 170, 255
 
-	## Line, outside, far
+	# Line, outside, far #
 	# hue_val = 14
 	# hue_win = 1.5
 	# sat_val = .6
@@ -61,7 +62,7 @@ def cd_color_segmentation(img, template, display=False, line=False):
 	# val_val = .6
 	# val_win = .20
 
-	# Line, outside, close
+	# # Line, outside, close #
 	# hue_val = 14
 	# hue_win = 2
 	# sat_val = .6
@@ -78,18 +79,17 @@ def cd_color_segmentation(img, template, display=False, line=False):
 	upper_orange = np.array([hue_high, saturation_high, value_high])
 	mask = cv2.inRange(hsv, lower_orange, upper_orange)
 
-	# Processing mask with closing #
+	# Processing mask#
 	if line:
 		erode_kernel = np.ones((4, 4), np.uint8)
 		dilate_kernel = np.ones((3, 3), np.uint8)
 		mask = cv2.dilate(mask, dilate_kernel, iterations=1)
 		mask = cv2.erode(mask, erode_kernel, iterations=1)
 	else:
-		# erode_kernel = np.ones((4, 4), np.uint8)
-		# dilate_kernel = np.ones((3, 3), np.uint8)
-		# mask = cv2.erode(mask, erode_kernel, iterations=1)
-		# mask = cv2.dilate(mask, dilate_kernel, iterations=1)
-		pass
+		erode_kernel = np.ones((4, 4), np.uint8)
+		dilate_kernel = np.ones((3, 3), np.uint8)
+		mask = cv2.erode(mask, erode_kernel, iterations=1)
+		mask = cv2.dilate(mask, dilate_kernel, iterations=1)
 
 	# if display is True:
 	# 	image_print(mask)
