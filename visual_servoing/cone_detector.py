@@ -24,7 +24,7 @@ class ConeDetector(Node):
     def __init__(self):
         super().__init__("cone_detector")
         # toggle line follower vs cone parker
-        self.declare_parameter("line_follower", True)
+        self.declare_parameter("line_follower", False)
         self.LineFollower = self.get_parameter("line_follower").value
         
         # Subscribe to ZED camera RGB frames
@@ -75,6 +75,7 @@ class ConeDetector(Node):
         (x1, y1), (x2, y2) = bounding_box
         bottom_pixel.u = float(x1 + (x2 - x1) / 2)
         bottom_pixel.v = float(y2)
+        # print(x1 + (x2 - x1) / 2, y2)
         self.cone_pub.publish(bottom_pixel)
 
         debug_msg = self.bridge.cv2_to_imgmsg(image, "bgr8")

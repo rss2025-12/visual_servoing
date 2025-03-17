@@ -21,15 +21,20 @@ from vs_msgs.msg import ConeLocation, ConeLocationPixel
 
 ######################################################
 ## DUMMY POINTS -- ENTER YOUR MEASUREMENTS HERE
+# [[193, 193], [277, 195], [368, 196], [468, 200], [558, 201], [114, 228], [240, 232], [379, 237],
+# [521, 241], [330, 150], [329, 126], [332, 141]]
+
 PTS_IMAGE_PLANE = [[193, 193],
                    [277, 195],
-                   [368, 196],
                    [468, 200],
                    [558, 201],
                    [114, 228],
                    [240, 232],
                    [379, 237],
-                   [521, 241]]
+                   [521, 241],
+                   [330, 150],
+                   [329, 126],
+                   [332, 141]]
 ######################################################
 
 # PTS_GROUND_PLANE units are in inches
@@ -37,15 +42,17 @@ PTS_IMAGE_PLANE = [[193, 193],
 
 ######################################################
 ## DUMMY POINTS -- ENTER YOUR MEASUREMENTS HERE
-PTS_GROUND_PLANE = [[0.84, 0.31],     # Bottom Right
-                    [0.82, 0.11],   # Bottom Left
-                    [0.83, -0.11],   # Top Right
+PTS_GROUND_PLANE = [[0.84, 0.31],
+                    [0.82, 0.11],
                     [0.79, -0.33],
                     [0.78, -0.53],
                     [0.57, 0.34],
                     [0.55, 0.13],
                     [0.54, -0.09],
-                    [0.52, -0.30]]   # Top Left
+                    [0.52, -0.30],
+                    [2, 0],
+                    [3, 0],
+                    [2.5, 0]]
 ######################################################
 
 METERS_PER_INCH = 0.0254
@@ -77,11 +84,11 @@ class HomographyTransformer(Node):
 
 
     def cone_detection_callback(self, msg):
-        #Extract information from message
+        # Extract information from message
         u = msg.u
         v = msg.v
 
-        #Call to main function
+        # Call to main function
         x, y = self.transformUvToXy(u, v)
 
         #Publish relative xy position of object in real world
@@ -89,6 +96,7 @@ class HomographyTransformer(Node):
         relative_xy_msg.x_pos = x
         relative_xy_msg.y_pos = y
 
+        print(x, y)
         self.draw_marker(x, y, "/zed_left_camera_frame")
         self.cone_pub.publish(relative_xy_msg)
 

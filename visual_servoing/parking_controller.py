@@ -136,7 +136,6 @@ class ParkingController(Node):
         # self.drive_pub.publish(drive_cmd)
         # self.error_publisher()
         
-        
         x_robot = 0
         y_robot = 0
         self.relative_x = msg.x_pos 
