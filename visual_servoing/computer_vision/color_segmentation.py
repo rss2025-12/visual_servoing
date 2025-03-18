@@ -44,12 +44,12 @@ def cd_color_segmentation(img, template, display=False, line=False):
 
 	if not line:
 		# Cone #
-		hue_val = 18
-		hue_win = 15
-		sat_val = .50
-		sat_win = .10
-		val_val = .70
-		val_win = .10
+		# hue_val = 18
+		# hue_win = 15
+		# sat_val = .50
+		# sat_win = .10
+		# val_val = .70
+		# val_win = .10
 
 		hue_low, hue_high = 2, 22
 		saturation_low, saturation_high = 200, 255
@@ -71,9 +71,15 @@ def cd_color_segmentation(img, template, display=False, line=False):
 		val_val = .6
 		val_win = .3
 
+		# previous tested, working windows (window definition needs revision)
 		hue_low, hue_high = hue_val-hue_win, hue_val+hue_win #2 , 30
 		saturation_low, saturation_high = min(sat_val*255-sat_win,0), max(sat_val*255+sat_win,255) # 150, 255
 		value_low, value_high = (val_val-val_win)*255, (val_val+val_win)*255 # 170, 255
+  
+		# # correct window definitions
+		# hue_low, hue_high = max(hue_val-hue_win, 0), min(hue_val+hue_win, 180)
+		# saturation_low, saturation_high = max((sat_val-sat_win)*255, 0), min((sat_win+sat_val)*255, 255)
+		# value_low, value_high = max((val_val-val_win)*255, 0), min((val_val+val_win)*255, 255)
 
 	# Filtering Image #
 	lower_orange = np.array([hue_low, saturation_low, value_low])
