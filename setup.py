@@ -12,6 +12,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/'+package_name, ['package.xml', "visual_servoing/params.yaml"]),
         ('lib/'+package_name+"/computer_vision", glob.glob(os.path.join('visual_servoing/computer_vision', '*.py'))),
         ('share/visual_servoing/launch', glob.glob(os.path.join('launch', '*launch.xml'))),
         ('share/visual_servoing/launch', glob.glob(os.path.join('launch', '*launch.py')))

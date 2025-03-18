@@ -1,3 +1,11 @@
 cone_detector:
   ros__parameters:
-    line_follower: True
+    line_follower: False
+
+parking_controller:
+  ros__parameters:
+    line_follower: False
+    parking distace: 0.5
+    drive_velocity: 1.0
+    
+

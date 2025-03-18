@@ -7,6 +7,7 @@
 
   <node pkg="visual_servoing" name="parking_controller" exec="parking_controller" output="screen">
   	<param name="drive_topic" value="/vesc/high_level/input/nav_0"/>
+    <param from="$(find-pkg-share visual_servoing)/params.yaml"/>
   </node>
 
   <node pkg="visual_servoing" name="cone_detector" exec="cone_detector" output="screen">
